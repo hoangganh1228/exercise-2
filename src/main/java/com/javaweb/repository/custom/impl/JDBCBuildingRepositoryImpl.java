@@ -1,4 +1,4 @@
-package com.javaweb.repository.impl;
+package com.javaweb.repository.custom.impl;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -11,20 +11,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Repository;
 
 import com.javaweb.builder.BuildingSearchBuilder;
 import com.javaweb.repository.BuildingRepository;
+import com.javaweb.repository.custom.BuildingRepositoryCustom;
 import com.javaweb.repository.entity.BuildingEntity;
 
 import utils.NumberUntil;
 import utils.StringUtil;
 
 @Repository
-public class BuildingRepositoryImpl implements BuildingRepository {
-	static final String DB_URL = "jdbc:mysql://localhost:3306/estatebasic";
-	static final String USER = "root";
-	static final String PASS = "Mo@28122004";
+@Primary
+public class JDBCBuildingRepositoryImpl implements BuildingRepositoryCustom  {
+//	@Value("${spring.datasource.url}")
+//	private String DB_URL;
+//	@Value("${spring.datasource.username}")
+//	private String USER;
+//	@Value("${spring.datasource.password}")
+//	private String PASS;
+	
+	@PersistenceContext
+	private EntityManager entityManager;
 	
 	public static void joinTable(BuildingSearchBuilder buildingSearchBuilder , StringBuilder sql) {
 		Integer staffId = buildingSearchBuilder.getStaffId();
@@ -116,45 +131,21 @@ public class BuildingRepositoryImpl implements BuildingRepository {
 		
 	}
 	
-	@Override
+//	@Override
 	public List<BuildingEntity> findAll(BuildingSearchBuilder buildingSearchBuilder) {
 		// TODO Auto-generated method stub
-		System.out.println(buildingSearchBuilder);
-		StringBuilder sql = new StringBuilder("SELECT b.id, b.name, b.districtid, b.street, b.ward, b.numberofbasement, b.rentprice, b.floorarea, b.servicefee, b.brokeragefee, b.managername, b.managerphonenumber, b.direction, b.brokeragefee, b.servicefee FROM building b");
+//		System.out.println(buildingSearchBuilder);
+		StringBuilder sql = new StringBuilder("SELECT b.* FROM building b");
 		joinTable(buildingSearchBuilder, sql);
 		StringBuilder where = new StringBuilder(" WHERE 1 = 1 ");
 		queryNormal(buildingSearchBuilder, where);
 		querySpecial(buildingSearchBuilder, where);
+		where.append("GROUP BY b.id");
 		sql.append(where);
 		System.out.println(sql);
-		List<BuildingEntity> result = new ArrayList<>();
-		try(Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
-    			Statement stmt = conn.createStatement();
-    			ResultSet rs = stmt.executeQuery(sql.toString())) {
-    		while(rs.next()) {
-    			BuildingEntity building = new BuildingEntity();
-    			building.setId(rs.getInt("b.id"));
-    			building.setName(rs.getString("b.name"));
-    			building.setFloorarea(rs.getInt("b.floorarea"));
-    			building.setDistrictid(rs.getInt("b.districtid"));
-    			building.setDirection(rs.getString("b.direction"));
-    			building.setStreet(rs.getString("b.street"));
-    			building.setWard(rs.getString("b.ward"));
-    			building.setNumberofbasement(rs.getInt("b.numberofbasement")); 			
-    			building.setManagername(rs.getString("b.managername"));
-    			building.setManagerphonenumber(rs.getString("b.managerphonenumber"));
-    			building.setRentprice(rs.getInt("b.rentprice"));
-    			building.setServicefee(rs.getInt("b.servicefee"));
-    			building.setBrokeragefee(rs.getFloat("brokeragefee"));
-    			result.add(building);
-    		}
-    	} catch (SQLException e) {
-    		e.printStackTrace();
-    		System.out.println("Connected failed");
-    	}
+		Query query = entityManager.createNativeQuery(sql.toString(), BuildingEntity.class);
 		
-		return result;
-		
+		return query.getResultList();
 		
 	}
 	

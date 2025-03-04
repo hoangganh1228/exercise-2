@@ -5,4 +5,4 @@
  * @author hoang
  *
  */
-package com.javaweb.repository.impl;
+package com.javaweb.repository.custom;
